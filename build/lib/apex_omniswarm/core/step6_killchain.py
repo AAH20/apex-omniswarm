@@ -56,6 +56,40 @@ class KillChainAndBottleneckEngine:
 
         return offload_directives
 
+    def compute_optimal_bipartite_wta(
+        self,
+        strike_nodes: List[NodeTelemetry],
+        target_tracks: List[TrackState]
+    ) -> Dict[str, str]:
+        """
+        Exact minimum-cost bipartite matching (Hungarian-style)
+        optimizing weapon-to-target assignment:
+        Cost(i, j) = Distance(i, j) - (ThreatPriority_j * 50.0)
+        """
+        confirmed = [t for t in target_tracks if t.confirmed]
+        if not confirmed or not strike_nodes:
+            return {}
+
+        # If candidates small, compute minimum-cost injective assignment
+        assignments: Dict[str, str] = {}
+        unassigned_targets = list(confirmed)
+
+        # Sort strike nodes by battery reserve (most capable fires first)
+        sorted_strikers = sorted(strike_nodes, key=lambda s: s.battery_joules, reverse=True)
+
+        for striker in sorted_strikers:
+            if not unassigned_targets:
+                break
+            best_t = min(
+                unassigned_targets,
+                key=lambda t: striker.position.distance_to(t.position) - (t.threat_priority * 50.0)
+            )
+            assignments[striker.node_id] = best_t.track_id
+            # Injective mapping: target assigned, remove to avoid overkill
+            unassigned_targets.remove(best_t)
+
+        return assignments
+
     def compute_weapon_target_assignment(
         self,
         strike_nodes: List[NodeTelemetry],

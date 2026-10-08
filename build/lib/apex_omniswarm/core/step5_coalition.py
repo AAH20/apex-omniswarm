@@ -59,6 +59,35 @@ class CoalitionGenerationEngine:
 
         return coalitions
 
+    def compute_shapley_marginal_contribution(
+        self,
+        node: NodeTelemetry,
+        coalition: List[NodeTelemetry]
+    ) -> float:
+        """
+        Calculates cooperative game-theoretic Shapley marginal value:
+        phi_i = V(C U {i}) - V(C)
+        where utility V(C) balances total sensor coverage, kinetic weapon payload, and battery endurance.
+        """
+        def coalition_value(members: List[NodeTelemetry]) -> float:
+            if not members:
+                return 0.0
+            recon_count = sum(1 for m in members if m.role in ("recon", "scout"))
+            strike_count = sum(1 for m in members if m.role in ("strike", "loitering"))
+            relay_count = sum(1 for m in members if m.role in ("relay", "mothership"))
+            total_batt = sum(m.battery_joules for m in members) / 100000.0
+
+            # Submodular cooperative synergy: square root of role counts prevents duplicate bloat
+            value = (math.sqrt(recon_count) * 4.0 +
+                     math.sqrt(strike_count) * 6.0 +
+                     math.sqrt(relay_count) * 3.0 +
+                     min(total_batt, 10.0))
+            return value
+
+        base_val = coalition_value(coalition)
+        augmented_val = coalition_value(coalition + [node])
+        return max(0.0, augmented_val - base_val)
+
     def prioritize_targets_kemeny(
         self,
         tracks: List[TrackState]

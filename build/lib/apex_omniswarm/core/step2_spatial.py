@@ -19,6 +19,22 @@ class SpatialIntelligenceEngine:
         self.association_gate = association_gate_meters
         self.tracks: Dict[str, TrackState] = {}
 
+    def compute_jpda_association_score(
+        self,
+        measurement_pos: Vector3D,
+        track: TrackState
+    ) -> float:
+        """
+        Computes normalized association likelihood under Gaussian spatial distribution:
+        P(z | track) = exp(-0.5 * ||z - pos||^2 / sigma^2) / sqrt(2*pi*sigma^2)
+        """
+        dist = measurement_pos.distance_to(track.position)
+        sigma = math.sqrt(max(track.covariance_trace, 0.1))
+        exponent = -0.5 * (dist * dist) / (sigma * sigma)
+        if exponent < -20.0:
+            return 0.0
+        return math.exp(exponent) / (math.sqrt(2.0 * math.pi) * sigma)
+
     def ingest_sensor_contact(
         self,
         target_id: str,
@@ -33,29 +49,39 @@ class SpatialIntelligenceEngine:
         Associates raw radar / optical contacts to existing tracks or initiates new tracks.
         Executes constant-velocity Extended Kalman Filter state update.
         """
-        if target_id in self.tracks:
-            track = self.tracks[target_id]
+        # Multi-target JPDA Gating: check if measurement matches an existing track
+        best_track_id: Optional[str] = None
+        highest_score = 0.0
+
+        for tid, track in self.tracks.items():
+            dist = observed_pos.distance_to(track.position)
+            if dist <= self.association_gate:
+                score = self.compute_jpda_association_score(observed_pos, track)
+                if score > highest_score:
+                    highest_score = score
+                    best_track_id = tid
+
+        if best_track_id is not None:
+            track = self.tracks[best_track_id]
             # Kinematic measurement residual
             residual = observed_pos - track.position
-            dist = residual.magnitude()
 
-            if dist <= self.association_gate:
-                # Kalman Gain computation (simplified 1D trace approximation for microsecond speed)
-                prior_var = track.covariance_trace
-                sensor_var = max(sensor_uncertainty_trace, 0.05)
-                kalman_gain = prior_var / (prior_var + sensor_var)
+            # Kalman Gain computation (simplified 1D trace approximation for microsecond speed)
+            prior_var = track.covariance_trace
+            sensor_var = max(sensor_uncertainty_trace, 0.05)
+            kalman_gain = prior_var / (prior_var + sensor_var)
 
-                # State update
-                track.position = track.position + (residual * kalman_gain)
-                # Velocity estimate update
-                measured_vel = residual * (1.0 / max(dt, 1e-4))
-                track.velocity = track.velocity + ((measured_vel - track.velocity) * (kalman_gain * 0.5))
-                # Covariance update
-                track.covariance_trace = (1.0 - kalman_gain) * prior_var
-                track.confirming_nodes.add(reporting_node_id)
-                track.confirmed = len(track.confirming_nodes) >= 2
-                track.threat_priority = max(track.threat_priority, threat_priority)
-                return track
+            # State update
+            track.position = track.position + (residual * kalman_gain)
+            # Velocity estimate update
+            measured_vel = residual * (1.0 / max(dt, 1e-4))
+            track.velocity = track.velocity + ((measured_vel - track.velocity) * (kalman_gain * 0.5))
+            # Covariance update
+            track.covariance_trace = (1.0 - kalman_gain) * prior_var
+            track.confirming_nodes.add(reporting_node_id)
+            track.confirmed = len(track.confirming_nodes) >= 2
+            track.threat_priority = max(track.threat_priority, threat_priority)
+            return track
 
         # Track initiation (M-of-N confirmation trigger)
         new_track = TrackState(

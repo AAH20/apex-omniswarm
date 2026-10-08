@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "apex-omniswarm"
-version = "1.0.0"
+version = "1.1.0"
 description = "Sovereign Multi-Domain Swarm Orchestration & Microsecond Sensor-to-Shooter Battle-Management OS"
 readme = "README.md"
 requires-python = ">=3.9"

@@ -11,6 +11,7 @@ apex_omniswarm.egg-info/entry_points.txt
 apex_omniswarm.egg-info/top_level.txt
 apex_omniswarm/core/__init__.py
 apex_omniswarm/core/primitives.py
+apex_omniswarm/core/simulation.py
 apex_omniswarm/core/step1_intent.py
 apex_omniswarm/core/step2_spatial.py
 apex_omniswarm/core/step3_grounding.py
