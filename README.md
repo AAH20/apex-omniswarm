@@ -1,7 +1,7 @@
 # Apex-OmniSwarm
 
 **Autonomous Heterogeneous Battle-Management OS & Microsecond Sensor-to-Shooter Engine**  
-*DO-178C / MIL-STD-882E Deterministic Safety Profile | Zero External Dependencies*
+*Deterministic 8-Step Pipeline Design Goal | Zero External Dependencies — no DO-178C / MIL-STD-882E certification artifacts or formal-proof evidence*
 
 ---
 
@@ -33,27 +33,27 @@ flowchart TB
 ## The 8 Operational Steps
 
 1. **Step 1: Multi-Modal Intent & ROE Ingestion**  
-   Ingests ATAK Cursor-on-Target (CoT), BCI neural telemetry, and tactical voice tokens. Evaluates geometric No-Fire Zone exclusions and Law of Armed Conflict (LOAC) proportionality.
+   Ingests ATAK Cursor-on-Target (CoT) and BCI neural telemetry (voice-token ingestion is roadmap). Evaluates geometric No-Fire Zone exclusions and Law of Armed Conflict (LOAC) proportionality.
 2. **Step 2: Multi-Domain Sensing & Spatial 3D Intelligence**  
-   Correlates radar, EO/IR optical streams, and ESM RF emitter contacts. Maintains target tracks using Extended Kalman Filters (EKF) and M-of-N confirmation gates.
+   Correlates radar, EO/IR optical streams, and ESM RF emitter contacts. Maintains target tracks using a simplified scalar (1D covariance-trace) Kalman gain and M-of-N confirmation gates; full Extended Kalman Filtering is roadmap.
 3. **Step 3: Swarm Grounding & Byzantine Epistemic Consensus**  
    Computes decentralized state estimates using trace-minimized Covariance Intersection. Filters out jammed or spoofed telemetry via the Mahalanobis distance metric ($D_M^2 > \chi_3^2$).
 4. **Step 4: Spectral Quarantine & Topology Sparsification**  
-   Dynamically prunes communication links to isolated rogue nodes and applies Spielman-Srivastava effective resistance sparsification to preserve connectivity under EW jamming.
+   Dynamically prunes communication links to isolated rogue nodes and builds a sparse anti-jamming graph via a distance/SNR threshold; Spielman-Srivastava effective-resistance / graph-Laplacian sparsification is roadmap.
 5. **Step 5: Coalition Structure Generation & Task Knapsack**  
-   Dynamically partitions the swarm into specialized ad-hoc cells (`recon_cell`, `strike_cell`, `relay_cell`, `reserve_cell`) and prioritizes targets via Kemeny-Young rank aggregation.
+   Dynamically partitions the swarm into specialized ad-hoc cells (`recon_cell`, `strike_cell`, `relay_cell`, `reserve_cell`) and prioritizes targets via a threat/consensus sort key; full Kemeny-Young rank aggregation is roadmap.
 6. **Step 6: Parallel Bottleneck Discovery & Microsecond Kill-Chain**  
-   Executes the microsecond F2T2EA sensor-to-shooter DAG. Detects edge queue overloads and dynamically shifts sub-tasks to idle peers while solving the Weapon-Target Assignment (WTA) knapsack.
+   Executes the microsecond F2T2EA sensor-to-shooter DAG. Detects edge queue overloads and dynamically shifts sub-tasks to idle peers, then assigns strike effectors to confirmed targets via greedy nearest-with-priority Weapon-Target Assignment (WTA); exact (Hungarian-style) minimum-cost matching is roadmap.
 7. **Step 7: Deterministic Reflex, 4D CBF & Motor Actuation**  
-   Enforces Control Barrier Function (CBF) invariants ($h(x) \ge 0$) guaranteeing collision avoidance within $<5\,\mu\text{s}$. Emits 400 Hz DShot1200 / CAN bus throttle setpoints.
+   Enforces Control Barrier Function (CBF) invariants ($h(x) \ge 0$) guaranteeing collision avoidance within $<5\,\mu\text{s}$. Converts commanded velocity into normalized 0-1 four-channel ESC throttle setpoints; real 400 Hz DShot1200 / CAN bus output is roadmap.
 8. **Step 8: Post-Quantum Provenance & Evidence Ledger**  
-   Appends immutable SHA-256 Merkle hash-chained state blocks with mock NIST FIPS 204 ML-DSA-65 post-quantum signatures for post-mission incident audit.
+   Appends immutable SHA-256 hash-chained state blocks (linear previous-hash chain, not a Merkle tree) with mock NIST FIPS 204 ML-DSA-65 post-quantum signature identifiers for post-mission incident audit.
 
 ---
 
 ## Performance Benchmarks
 
-Executed on standard hardware without GPU acceleration:
+> **Self-reported (unverified).** The figures below are reported by the author from `benchmarks/bench_latency.py` on the author's hardware (CPU-only). They were not independently reproduced; cycle latency is hardware-dependent and varies across machines.
 
 | Operational Metric | Latency (Microseconds) | SLA Budget |
 | :--- | :--- | :--- |
